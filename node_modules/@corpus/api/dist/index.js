@@ -3,11 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const app_1 = require("./app");
+const app_js_1 = require("./app.js");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const start = async () => {
-    const app = await (0, app_1.buildApp)();
+    const app = await (0, app_js_1.buildApp)();
     const port = parseInt(process.env.PORT || '3000', 10);
     const host = '0.0.0.0';
     try {

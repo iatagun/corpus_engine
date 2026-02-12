@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { Client } from '@opensearch-project/opensearch';
-import { QueryBuilder } from '../services/query-builder';
+import { QueryBuilder } from '../services/query-builder.js';
 import { CorpusQuery } from '@corpus/types';
 import dotenv from 'dotenv';
 
@@ -18,6 +18,17 @@ const client = new Client({
 const queryBuilder = new QueryBuilder();
 
 export async function searchRoutes(app: FastifyInstance) {
+    app.get('/search', async () => {
+        return {
+            status: 'ok',
+            message: 'Use POST /search to query the corpus.',
+            example_body: {
+                corpus_id: 'corpus_synth_1',
+                query: { type: 'token', lemma: 'run' }
+            }
+        };
+    });
+
     app.post<{ Body: CorpusQuery }>('/search', async (request, reply) => {
         const corpusQuery = request.body;
 

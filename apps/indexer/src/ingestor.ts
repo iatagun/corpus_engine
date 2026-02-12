@@ -55,7 +55,7 @@ export class BulkIndexer {
     private async flushBatch(sentences: Sentence[], corpusId: string) {
         const body = sentences.flatMap(doc => [
             { index: { _index: this.indexName, _id: doc.sentence_id } },
-            doc,
+            { ...doc, corpus_id: corpusId }, // Inject corpus_id
         ]);
 
         try {

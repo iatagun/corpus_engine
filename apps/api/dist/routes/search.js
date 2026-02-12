@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.searchRoutes = searchRoutes;
 const opensearch_1 = require("@opensearch-project/opensearch");
-const query_builder_1 = require("../services/query-builder");
+const query_builder_js_1 = require("../services/query-builder.js");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const client = new opensearch_1.Client({
@@ -16,8 +16,18 @@ const client = new opensearch_1.Client({
     },
     ssl: { rejectUnauthorized: false },
 });
-const queryBuilder = new query_builder_1.QueryBuilder();
+const queryBuilder = new query_builder_js_1.QueryBuilder();
 async function searchRoutes(app) {
+    app.get('/search', async () => {
+        return {
+            status: 'ok',
+            message: 'Use POST /search to query the corpus.',
+            example_body: {
+                corpus_id: 'corpus_synth_1',
+                query: { type: 'token', lemma: 'run' }
+            }
+        };
+    });
     app.post('/search', async (request, reply) => {
         const corpusQuery = request.body;
         try {

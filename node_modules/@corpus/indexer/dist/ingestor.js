@@ -50,7 +50,7 @@ class BulkIndexer {
     async flushBatch(sentences, corpusId) {
         const body = sentences.flatMap(doc => [
             { index: { _index: this.indexName, _id: doc.sentence_id } },
-            doc,
+            { ...doc, corpus_id: corpusId }, // Inject corpus_id
         ]);
         try {
             const response = await this.client.bulk({ body });
