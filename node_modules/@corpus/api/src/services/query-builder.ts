@@ -40,6 +40,43 @@ export class QueryBuilder {
         };
     }
 
+    public validate(q: CorpusQuery): void {
+        // 1. Pagination Limit
+        if (q.pagination && q.pagination.size > 100) {
+            throw new Error("Pagination size exceeds limit (100). Use search_after for deep pagination.");
+        }
+
+        // 2. Query Complexity Analysis
+        this.validateElement(q.query, 0);
+    }
+
+    private validateElement(el: TokenQueryElement | SequenceQuery | DependencyQueryElement, depth: number) {
+        if (depth > 5) { // Max nesting depth
+            throw new Error("Query is too complex (max depth 5)");
+        }
+
+        if (el.type === 'sequence') {
+            const seq = el as SequenceQuery;
+            if (seq.elements.length > 10) {
+                throw new Error("Sequence too long (max 10 tokens)");
+            }
+            seq.elements.forEach(e => this.validateElement(e, depth + 1));
+        } else if (el.type === 'dependency') {
+            const dep = el as DependencyQueryElement;
+            this.validateElement(dep.head, depth + 1);
+            this.validateElement(dep.dependent, depth + 1);
+        } else if (el.type === 'token') {
+            const tok = el as TokenQueryElement;
+            // Regex Safety Check (Basic)
+            if (tok.form && tok.form.startsWith('/') && tok.form.endsWith('/')) {
+                const regexBody = tok.form.slice(1, -1);
+                if (regexBody.startsWith('.*') || regexBody.length < 2) {
+                    throw new Error("Dangerous regex detected. Start with specific characters.");
+                }
+            }
+        }
+    }
+
     private buildElementQuery(element: TokenQueryElement | SequenceQuery | DependencyQueryElement): any {
         switch (element.type) {
             case 'token':

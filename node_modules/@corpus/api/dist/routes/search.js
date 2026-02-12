@@ -21,6 +21,7 @@ async function searchRoutes(app) {
     app.post('/search', async (request, reply) => {
         const corpusQuery = request.body;
         try {
+            queryBuilder.validate(corpusQuery); // Validation
             const osQuery = queryBuilder.build(corpusQuery);
             // Execute Search
             const result = await client.search({

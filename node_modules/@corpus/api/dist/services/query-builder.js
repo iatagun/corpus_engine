@@ -30,6 +30,41 @@ class QueryBuilder {
             from: q.pagination?.from || 0,
         };
     }
+    validate(q) {
+        // 1. Pagination Limit
+        if (q.pagination && q.pagination.size > 100) {
+            throw new Error("Pagination size exceeds limit (100). Use search_after for deep pagination.");
+        }
+        // 2. Query Complexity Analysis
+        this.validateElement(q.query, 0);
+    }
+    validateElement(el, depth) {
+        if (depth > 5) { // Max nesting depth
+            throw new Error("Query is too complex (max depth 5)");
+        }
+        if (el.type === 'sequence') {
+            const seq = el;
+            if (seq.elements.length > 10) {
+                throw new Error("Sequence too long (max 10 tokens)");
+            }
+            seq.elements.forEach(e => this.validateElement(e, depth + 1));
+        }
+        else if (el.type === 'dependency') {
+            const dep = el;
+            this.validateElement(dep.head, depth + 1);
+            this.validateElement(dep.dependent, depth + 1);
+        }
+        else if (el.type === 'token') {
+            const tok = el;
+            // Regex Safety Check (Basic)
+            if (tok.form && tok.form.startsWith('/') && tok.form.endsWith('/')) {
+                const regexBody = tok.form.slice(1, -1);
+                if (regexBody.startsWith('.*') || regexBody.length < 2) {
+                    throw new Error("Dangerous regex detected. Start with specific characters.");
+                }
+            }
+        }
+    }
     buildElementQuery(element) {
         switch (element.type) {
             case 'token':
