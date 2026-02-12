@@ -1,0 +1,29 @@
+{
+  "name": "corpus-engine-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Linguistic Corpus Engine Monorepo",
+  "workspaces": [
+    "apps/*",
+    "libs/*"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:indexer": "npm run dev --workspace=apps/indexer",
+    "build": "npm run build --workspaces",
+    "lint": "eslint ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.10.5",
+    "ts-node": "^10.9.2",
+    "nodemon": "^3.0.2",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/parser": "^6.14.0",
+    "@typescript-eslint/eslint-plugin": "^6.14.0"
+  }
+}

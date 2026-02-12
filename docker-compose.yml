@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: corpus-opensearch
+    environment:
+      - discovery.type=single-node
+      - "DISABLE_INSTALL_DEMO_CONFIG=true" 
+      # Disable security plugin for local dev simplicity (or keep enabled with default demo certs)
+      # For production-grade architecture simulation, we'll keep it simple first or use default admin/admin
+      - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=StrongPassword123!"
+      - "plugins.security.disabled=true" # Disabling security for local dev to avoid SSL complexity initially
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    networks:
+      - corpus-net
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.11.0
+    container_name: corpus-dashboards
+    ports:
+      - "5601:5601"
+    environment:
+      - 'OPENSEARCH_HOSTS=["http://opensearch:9200"]'
+      - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true"
+    networks:
+      - corpus-net
+    depends_on:
+      - opensearch
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: corpus-postgres
+    environment:
+      POSTGRES_USER: corpus_admin
+      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_DB: corpus_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - corpus-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: corpus-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - corpus-net
+
+volumes:
+  opensearch-data:
+  postgres-data:
+  redis-data:
+
+networks:
+  corpus-net:
+    driver: bridge
