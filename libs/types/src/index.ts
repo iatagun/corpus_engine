@@ -71,5 +71,5 @@ export interface CorpusQuery {
     corpus_id: string;
     filters?: QueryFilter;
     query: TokenQueryElement | SequenceQuery | DependencyQueryElement;
-    pagination?: { from: number; size: number };
+    pagination?: { from: number; size: number; sort?: (string | number)[] };
 }

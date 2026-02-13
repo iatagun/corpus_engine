@@ -33,49 +33,34 @@ export class QueryBuilder {
         const mainQuery = this.buildElementQuery(q.query);
         boolQuery.must.push(mainQuery);
 
-        return {
+        const osQuery: any = {
             query: { bool: boolQuery },
             size: q.pagination?.size || 20,
             from: q.pagination?.from || 0,
-        };
-    }
-
-    public validate(q: CorpusQuery): void {
-        // 1. Pagination Limit
-        if (q.pagination && q.pagination.size > 100) {
-            throw new Error("Pagination size exceeds limit (100). Use search_after for deep pagination.");
-        }
-
-        // 2. Query Complexity Analysis
-        this.validateElement(q.query, 0);
-    }
-
-    private validateElement(el: TokenQueryElement | SequenceQuery | DependencyQueryElement, depth: number) {
-        if (depth > 5) { // Max nesting depth
-            throw new Error("Query is too complex (max depth 5)");
-        }
-
-        if (el.type === 'sequence') {
-            const seq = el as SequenceQuery;
-            if (seq.elements.length > 10) {
-                throw new Error("Sequence too long (max 10 tokens)");
-            }
-            seq.elements.forEach(e => this.validateElement(e, depth + 1));
-        } else if (el.type === 'dependency') {
-            const dep = el as DependencyQueryElement;
-            this.validateElement(dep.head, depth + 1);
-            this.validateElement(dep.dependent, depth + 1);
-        } else if (el.type === 'token') {
-            const tok = el as TokenQueryElement;
-            // Regex Safety Check (Basic)
-            if (tok.form && tok.form.startsWith('/') && tok.form.endsWith('/')) {
-                const regexBody = tok.form.slice(1, -1);
-                if (regexBody.startsWith('.*') || regexBody.length < 2) {
-                    throw new Error("Dangerous regex detected. Start with specific characters.");
+            sort: [
+                { _score: "desc" },
+                { sentence_id: "asc" } // Tie-breaker for deterministic sorting
+            ],
+            aggs: {
+                genres: {
+                    terms: { field: "meta_genre", size: 20 }
+                },
+                years: {
+                    terms: { field: "meta_year", size: 50, order: { _key: "desc" } }
                 }
             }
+        };
+
+        if (q.pagination?.sort) {
+            osQuery.search_after = q.pagination.sort;
+            osQuery.from = 0; // search_after should be used with from=0
+            osQuery.track_total_hits = true;
         }
+
+        return osQuery;
     }
+
+
 
     private buildElementQuery(element: TokenQueryElement | SequenceQuery | DependencyQueryElement): any {
         switch (element.type) {
@@ -90,7 +75,7 @@ export class QueryBuilder {
         }
     }
 
-    private buildTokenQuery(token: TokenQueryElement): any {
+    private buildTokenQuery(token: TokenQueryElement, index?: number): any {
         const nestedBool: any = { must: [] };
 
         if (token.form) nestedBool.must.push({ term: { "tokens.form": token.form } });
@@ -104,11 +89,13 @@ export class QueryBuilder {
             }
         }
 
+        const hitName = index !== undefined ? `token_${index}` : 'tokens';
+
         return {
             nested: {
                 path: 'tokens',
                 query: { bool: nestedBool },
-                inner_hits: { size: 100 } // Return matched tokens for highlighting/verification
+                inner_hits: { name: hitName, size: 100 } // Return matched tokens for highlighting/verification
             }
         };
     }
@@ -117,7 +104,7 @@ export class QueryBuilder {
     // The precise ordering check is done in the "rescore" phase or client-side for MVE.
     // Ideally, we would use a `span` query here if tokens were not nested, or a script.
     private buildSequenceQuery(seq: SequenceQuery): any {
-        const mustClauses = seq.elements.map(el => this.buildTokenQuery(el));
+        const mustClauses = seq.elements.map((el, idx) => this.buildTokenQuery(el, idx));
 
         // Simple AND: Sentence must contain Token A AND Token B ...
         return {

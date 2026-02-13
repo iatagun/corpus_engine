@@ -8,10 +8,11 @@ dotenv.config();
 
 export class BulkIndexer {
     private client: Client;
-    private indexName = 'corpus_sentences_v1';
+    private indexName: string;
     private batchSize = 2000;
 
-    constructor() {
+    constructor(targetIndexName: string = 'corpus_sentences_v1') {
+        this.indexName = targetIndexName;
         this.client = new Client({
             node: process.env.OPENSEARCH_NODE || 'http://localhost:9200',
             auth: {
@@ -53,10 +54,50 @@ export class BulkIndexer {
     }
 
     private async flushBatch(sentences: Sentence[], corpusId: string) {
-        const body = sentences.flatMap(doc => [
-            { index: { _index: this.indexName, _id: doc.sentence_id } },
-            { ...doc, corpus_id: corpusId }, // Inject corpus_id
-        ]);
+        const body = sentences.flatMap(doc => {
+            // Calculate Fast Filter Fields
+            const uniqueLemmas = new Set<string>();
+            const uniqueUpos = new Set<string>();
+            const uniqueFeats = new Set<string>();
+
+            // Pre-process tokens to populate sets AND denormalize head info
+            // To denormalize head info, we need a map of ID -> Token
+            const tokenMap = new Map(doc.tokens.map(t => [t.id, t]));
+
+            const enrichedTokens = doc.tokens.map(t => {
+                if (t.lemma) uniqueLemmas.add(t.lemma);
+                if (t.upos) uniqueUpos.add(t.upos);
+                if (t.feats && t.feats !== '_') {
+                    // Split feats "Case=Nom|Number=Sing" into ["Case=Nom", "Number=Sing"]
+                    t.feats.split('|').forEach(f => uniqueFeats.add(f));
+                }
+
+                // Denormalize Head Info
+                let headLemma = null;
+                let headUpos = null;
+                if (t.head && t.head !== 0) {
+                    const headToken = tokenMap.get(t.head);
+                    if (headToken) {
+                        headLemma = headToken.lemma;
+                        headUpos = headToken.upos;
+                    }
+                }
+
+                return { ...t, head_lemma: headLemma, head_upos: headUpos };
+            });
+
+            return [
+                { index: { _index: this.indexName, _id: doc.sentence_id } },
+                {
+                    ...doc,
+                    corpus_id: corpusId,
+                    tokens: enrichedTokens, // Use enriched tokens
+                    has_lemma: Array.from(uniqueLemmas),
+                    has_upos: Array.from(uniqueUpos),
+                    has_feats: Array.from(uniqueFeats)
+                },
+            ];
+        });
 
         try {
             const response = await this.client.bulk({ body });

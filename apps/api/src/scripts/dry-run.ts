@@ -1,5 +1,6 @@
 import { ConlluStreamParser } from '@corpus/utils';
 import { QueryBuilder } from '../services/query-builder.js';
+import { QueryValidator } from '../services/query-validator.js';
 import { CorpusQuery } from '@corpus/types';
 import path from 'path';
 
@@ -45,8 +46,9 @@ async function main() {
     };
 
     console.log("Building OpenSearch DSL for query: 'sequence(complex, system)'");
+    const validator = new QueryValidator();
     try {
-        qb.validate(sampleQuery);
+        validator.validate(sampleQuery);
         const dsl = qb.build(sampleQuery);
         console.log("Generated DSL:");
         console.log(JSON.stringify(dsl, null, 2));

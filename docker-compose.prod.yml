@@ -1,0 +1,80 @@
+# Corpus Engine Production Stack
+version: '3.8'
+
+services:
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: corpus-opensearch
+    environment:
+      - discovery.type=single-node
+      - "DISABLE_INSTALL_DEMO_CONFIG=true"
+      - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=StrongPassword123!"
+      - "plugins.security.disabled=true"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    networks:
+      - corpus-net
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: corpus-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-corpus_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_password}
+      POSTGRES_DB: ${POSTGRES_DB:-corpus_db}
+    ports:
+      - "5432:5432"
+    networks:
+      - corpus-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: corpus-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - corpus-net
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: corpus-api
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - POSTGRES_HOST=postgres
+      - OPENSEARCH_NODE=http://opensearch:9200
+    depends_on:
+      - opensearch
+      - postgres
+      - redis
+    networks:
+      - corpus-net
+
+  indexer:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile # Reuse same image for indexer
+    container_name: corpus-indexer
+    environment:
+      - REDIS_HOST=redis
+      - POSTGRES_HOST=postgres
+      - OPENSEARCH_NODE=http://opensearch:9200
+    depends_on:
+      - opensearch
+      - postgres
+    networks:
+      - corpus-net
+    volumes:
+      - ./data:/app/data
+    command: ["tail", "-f", "/dev/null"] # Keep alive for exec
+
+networks:
+  corpus-net:
+    driver: bridge
