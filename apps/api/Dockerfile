@@ -3,17 +3,11 @@ FROM node:22-slim AS builder
 
 WORKDIR /app
 
-# Copy root package.json and workspace package.json
-COPY package*.json ./
-COPY apps/api/package*.json ./apps/api/
-COPY libs/types/package*.json ./libs/types/
-COPY libs/utils/package*.json ./libs/utils/
-
-# Install dependencies
-RUN npm install
-
-# Copy source code
+# Copy everything first to ensure workspaces are found
 COPY . .
+
+# Install dependencies (from root)
+RUN npm install
 
 # Build workspace (if needed, here we use tsx directly for simplicity, but in real prod we'd build to JS)
 # RUN npm run build --workspace=apps/api

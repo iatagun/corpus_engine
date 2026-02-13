@@ -23,7 +23,7 @@ const pool = new pg.Pool({
 async function run() {
     console.log('🚀 Running Postgres Migrations...');
     try {
-        const sqlPath = path.join(__dirname, '../../../../indexer/src/migrations/init.sql');
+        const sqlPath = path.resolve(process.cwd(), 'apps/indexer/src/migrations/init.sql');
         const sql = fs.readFileSync(sqlPath, 'utf8');
         await pool.query(sql);
         console.log('✅ Migrations Successful');
