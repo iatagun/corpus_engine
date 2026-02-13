@@ -1,5 +1,4 @@
 # Corpus Engine Production Stack
-version: '3.8'
 
 services:
   opensearch:
@@ -80,6 +79,21 @@ services:
     volumes:
       - ./data:/app/data
     command: ["tail", "-f", "/dev/null"] # Keep alive for exec
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: corpus-web
+    ports:
+      - "3001:3000"
+    environment:
+      - API_URL=http://api:3000
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+    depends_on:
+      - api
+    networks:
+      - corpus-net
 
 networks:
   corpus-net:

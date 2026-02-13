@@ -14,66 +14,37 @@ Supports:
 
 ---
 
-## ⚡ Quick Start
+## 🚀 3-Step Setup (For Production)
 
-Get the system up and running in 5 minutes:
-
+### 1. Configure Environment
 ```bash
-git clone <repo_url>
-cd corpus-engine
-
-# 1. Setup Environment
 cp .env.example .env
+```
 
-# 2. Start Infrastructure & Services
+### 2. Launch Everything (API + Web + DB)
+```bash
 docker compose -f docker-compose.prod.yml up -d
+```
+> *Wait ~30 seconds for OpenSearch to wake up.*
 
-# 3. Initialize Data Stores
+### 3. Initialize Data
+```bash
 docker compose exec api npm run migrate
 docker compose exec api npm run init-index
 ```
 
 ---
 
-## ✅ Verify Installation
-
-Check if the engine and its dependencies are healthy:
-
-```bash
-# Check Process Status
-curl http://localhost:3000/health
-
-# Check Dependency Connectivity (Redis, DB, OpenSearch)
-curl http://localhost:3000/ready
-```
+## 🖥️ Access Points
+- **Frontend (UI)**: [http://localhost:3001](http://localhost:3001)
+- **Backend API**: [http://localhost:3000](http://localhost:3000)
+- **Health Check**: [http://localhost:3000/health](http://localhost:3000/health)
 
 ---
 
-## 📥 How to Upload Data (CoNLL-U)
-
-The ingestion process is high-performance and stream-based. To load your linguistic data:
-
-### 1. Prepare your files
-Copy your `.conllu` files into the `./data` folder on your host machine. This folder is synchronized with the `indexer` container.
-
-### 2. Run Ingestion
-You can ingest a single file or an entire directory:
-
-**Single File:**
-```bash
-docker compose exec indexer \
-  npx tsx apps/indexer/src/ingestor.ts /app/data/my_file.conllu my_corpus_id
-```
-
-**Bulk Ingestion (All files in a folder):**
-```bash
-# Ingest all .conllu files in the data folder to one corpus
-./scripts/ops/bulk-ingest.sh my_corpus_id /app/data
-```
-
 ---
 
-## 🔍 API Usage
+## �🔍 API Usage
 
 ### Example Search Query
 **POST /search**
