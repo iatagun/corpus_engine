@@ -1,0 +1,108 @@
+{
+    "settings": {
+        "number_of_shards": 1,
+        "number_of_replicas": 0,
+        "analysis": {
+            "analyzer": {
+                "standard_text": {
+                    "type": "standard"
+                },
+                "lowercase_keyword": {
+                    "tokenizer": "keyword",
+                    "filter": [
+                        "lowercase"
+                    ]
+                }
+            }
+        }
+    },
+    "mappings": {
+        "dynamic": "strict",
+        "properties": {
+            "corpus_id": {
+                "type": "keyword"
+            },
+            "document_id": {
+                "type": "keyword"
+            },
+            "sentence_id": {
+                "type": "keyword"
+            },
+            "sentence_seq": {
+                "type": "integer"
+            },
+            "meta_year": {
+                "type": "integer"
+            },
+            "meta_genre": {
+                "type": "keyword"
+            },
+            "meta_author": {
+                "type": "keyword"
+            },
+            "text": {
+                "type": "text",
+                "analyzer": "standard_text"
+            },
+            "has_lemma": {
+                "type": "keyword"
+            },
+            "has_upos": {
+                "type": "keyword"
+            },
+            "has_feats": {
+                "type": "keyword"
+            },
+            "tokens": {
+                "type": "nested",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "form": {
+                        "type": "keyword",
+                        "fields": {
+                            "text": {
+                                "type": "text",
+                                "analyzer": "standard_text"
+                            }
+                        }
+                    },
+                    "lemma": {
+                        "type": "keyword",
+                        "fields": {
+                            "text": {
+                                "type": "text",
+                                "analyzer": "standard_text"
+                            }
+                        }
+                    },
+                    "upos": {
+                        "type": "keyword"
+                    },
+                    "xpos": {
+                        "type": "keyword"
+                    },
+                    "feats": {
+                        "type": "keyword"
+                    },
+                    "head": {
+                        "type": "integer"
+                    },
+                    "deprel": {
+                        "type": "keyword"
+                    },
+                    "misc": {
+                        "type": "keyword"
+                    },
+                    "head_lemma": {
+                        "type": "keyword"
+                    },
+                    "head_upos": {
+                        "type": "keyword"
+                    }
+                }
+            }
+        }
+    }
+}

@@ -48,8 +48,9 @@ const indexBody = {
 
             // Flattened "Bag of Words" for pre-filtering
             text: { type: 'text', analyzer: 'standard_text' },
-            has_lemmas: { type: 'keyword' },
-            has_pos: { type: 'keyword' },
+            has_lemma: { type: 'keyword' },
+            has_upos: { type: 'keyword' },
+            has_feats: { type: 'keyword' },
 
             // Nested Tokens
             tokens: {

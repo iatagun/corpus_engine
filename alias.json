@@ -1,0 +1,10 @@
+{
+    "actions": [
+        {
+            "add": {
+                "index": "corpus_sentences_v1",
+                "alias": "corpus_read"
+            }
+        }
+    ]
+}

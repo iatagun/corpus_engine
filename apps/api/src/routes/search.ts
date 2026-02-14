@@ -114,6 +114,7 @@ export async function searchRoutes(app: FastifyInstance) {
 
         } catch (error) {
             request.log.error({ msg: 'Search Failed', error });
+            console.error('FULL ERROR DETAILS:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
             if (error instanceof Error && error.name === 'ValidationError') {
                 return reply.code(400).send({ error: error.message });
             }
