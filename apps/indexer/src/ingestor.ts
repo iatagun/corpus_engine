@@ -1,5 +1,6 @@
+
 import { Client } from '@opensearch-project/opensearch';
-import { ConlluStreamParser } from '@corpus/utils/src/conllu-parser'; // Uses path mapping now
+import { ConlluStreamParser } from '@corpus/utils/src/conllu-parser';
 import { Sentence } from '@corpus/types';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -31,8 +32,7 @@ export class BulkIndexer {
         let processedCount = 0;
         const start = Date.now();
 
-        // Iterate through the async generator
-        // @ts-ignore - Parser likely needs fixing to export properly or be compiled
+        // @ts-ignore
         for await (const sentence of parser.parse()) {
             batch.push(sentence);
 
@@ -44,7 +44,6 @@ export class BulkIndexer {
             }
         }
 
-        // Flush remaining
         if (batch.length > 0) {
             await this.flushBatch(batch, corpusId);
             processedCount += batch.length;
@@ -55,24 +54,19 @@ export class BulkIndexer {
 
     private async flushBatch(sentences: Sentence[], corpusId: string) {
         const body = sentences.flatMap(doc => {
-            // Calculate Fast Filter Fields
             const uniqueLemmas = new Set<string>();
             const uniqueUpos = new Set<string>();
             const uniqueFeats = new Set<string>();
 
-            // Pre-process tokens to populate sets AND denormalize head info
-            // To denormalize head info, we need a map of ID -> Token
             const tokenMap = new Map(doc.tokens.map(t => [t.id, t]));
 
             const enrichedTokens = doc.tokens.map(t => {
                 if (t.lemma) uniqueLemmas.add(t.lemma);
                 if (t.upos) uniqueUpos.add(t.upos);
                 if (t.feats && t.feats !== '_') {
-                    // Split feats "Case=Nom|Number=Sing" into ["Case=Nom", "Number=Sing"]
                     t.feats.split('|').forEach(f => uniqueFeats.add(f));
                 }
 
-                // Denormalize Head Info
                 let headLemma = null;
                 let headUpos = null;
                 if (t.head && t.head !== 0) {
@@ -86,12 +80,16 @@ export class BulkIndexer {
                 return { ...t, head_lemma: headLemma, head_upos: headUpos };
             });
 
+            // Sanitize doc to remove old fields that might be in ...doc
+            const { has_lemmas, has_pos, ...cleanDoc } = doc as any;
+
             return [
                 { index: { _index: this.indexName, _id: doc.sentence_id } },
                 {
-                    ...doc,
+                    ...cleanDoc,
                     corpus_id: corpusId,
-                    tokens: enrichedTokens, // Use enriched tokens
+                    tokens: enrichedTokens,
+                    // FIX: Use singular field names to match mapping
                     has_lemma: Array.from(uniqueLemmas),
                     has_upos: Array.from(uniqueUpos),
                     has_feats: Array.from(uniqueFeats)
@@ -103,7 +101,6 @@ export class BulkIndexer {
             const response = await this.client.bulk({ body });
             if (response.body.errors) {
                 const erroredDocuments: any[] = [];
-                // Extract error details (simplified)
                 response.body.items.forEach((item: any, i: number) => {
                     if (item.index && item.index.error) {
                         erroredDocuments.push({ status: item.index.status, error: item.index.error, docId: sentences[i].sentence_id });
@@ -113,7 +110,7 @@ export class BulkIndexer {
             }
         } catch (error) {
             console.error('Critical Bulk Error:', error);
-            throw error; // Retry logic usually goes here (BullMQ)
+            throw error;
         }
     }
 
@@ -124,7 +121,6 @@ export class BulkIndexer {
     }
 }
 
-// CLI Execution if called directly
 if (require.main === module) {
     const [, , file, corpusId, docId] = process.argv;
     if (!file || !corpusId) {

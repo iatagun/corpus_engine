@@ -13,6 +13,8 @@ services:
       memlock:
         soft: -1
         hard: -1
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
     networks:
       - corpus-net
 
@@ -25,6 +27,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-corpus_db}
     ports:
       - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
     networks:
       - corpus-net
 
@@ -33,6 +37,8 @@ services:
     container_name: corpus-redis
     ports:
       - "6379:6379"
+    volumes:
+      - redis-data:/data
     networks:
       - corpus-net
 
@@ -98,3 +104,8 @@ services:
 networks:
   corpus-net:
     driver: bridge
+
+volumes:
+  opensearch-data:
+  postgres-data:
+  redis-data:
